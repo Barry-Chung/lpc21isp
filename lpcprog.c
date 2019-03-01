@@ -1207,6 +1207,26 @@ int NxpDownload(ISP_ENVIRONMENT *IspEnvironment)
             // This is especially needed in the case where a Flash sector is
             // bigger than the amount of SRAM.
             SectorChunk = SectorLength - SectorOffset;
+
+            // Round SectorChunk up to one of the following values: 512, 1024,
+            // 4096, 8192; but do not exceed the maximum copy size (usually
+            // 8192, but chip-dependent)
+            if (SectorChunk < 512)
+            {
+                SectorChunk = 512;
+            }
+            else if (SectorChunk < 1024)
+            {
+                SectorChunk = 1024;
+            }
+            else if (SectorChunk < 4096)
+            {
+                SectorChunk = 4096;
+            }
+            else
+            {
+                SectorChunk = 8192;
+            }
             if (SectorChunk > (unsigned)LPCtypes[IspEnvironment->DetectedDevice].MaxCopySize)
             {
                 SectorChunk = LPCtypes[IspEnvironment->DetectedDevice].MaxCopySize;
@@ -1519,31 +1539,7 @@ int NxpDownload(ISP_ENVIRONMENT *IspEnvironment)
                     return (WRONG_ANSWER_PREP2 + GetAndReportErrorNumber(Answer));
                 }
 
-                // Round CopyLength up to one of the following values: 512, 1024,
-                // 4096, 8192; but do not exceed the maximum copy size (usually
-                // 8192, but chip-dependent)
-                if (CopyLength < 512)
-                {
-                    CopyLength = 512;
-                }
-                else if (SectorLength < 1024)
-                {
-                    CopyLength = 1024;
-                }
-                else if (SectorLength < 4096)
-                {
-                    CopyLength = 4096;
-                }
-                else
-                {
-                    CopyLength = 8192;
-                }
-                if (CopyLength > (unsigned)LPCtypes[IspEnvironment->DetectedDevice].MaxCopySize)
-                {
-                    CopyLength = LPCtypes[IspEnvironment->DetectedDevice].MaxCopySize;
-                }
-
-                sprintf(tmpString, "C %ld %ld %ld\r\n", IspEnvironment->BinaryOffset + SectorStart + SectorOffset, ReturnValueLpcRamBase(IspEnvironment), CopyLength);
+                sprintf(tmpString, "C %ld %ld %ld\r\n", IspEnvironment->BinaryOffset + SectorStart + SectorOffset, ReturnValueLpcRamBase(IspEnvironment), SectorChunk);
 
                 if (!SendAndVerify(IspEnvironment, tmpString, Answer, sizeof Answer))
                 {
